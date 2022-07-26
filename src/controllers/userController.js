@@ -1,6 +1,7 @@
 const userModel = require('../models/userModel');
 const bcrypt = require('bcrypt');
-const { isValid, isValidBody, validation, nameRegex, emailRegex, phoneRegex, passRegex } = require('../validations/validator')
+const jwt = require('jsonwebtoken');
+const { isValid, isValidBody, validation, nameRegex, emailRegex, phoneRegex, passRegex, pinRegex } = require('../validations/validator')
 const aws= require("aws-sdk")
 
 
@@ -27,7 +28,7 @@ let uploadFile = async (file) => {
         if (err) {
             return reject({"error": err})
         }
-        console.log(data)
+        // console.log(data)
         console.log("file uploaded succesfully")
         return resolve(data.Location)
     })
@@ -47,28 +48,44 @@ const createUser = async function (req, res) {
         let keys = [...validation(arr)]
         if (keys.length > 0) return res.status(400).send({ status: false, message: `Enter the following mandatory fields: [${keys}]`});
 
-        // console.log(data.address);
-        data.address = JSON.parse(address);
-        // console.log(data.address);
-        if (!isValidBody(data.address)) return res.status(400).send({ status: false, message: "No data provided in address." })
+        if (!nameRegex.test(fname)) return res.status(400).send({ status: false, message: "fname should contain alphabets only." });
+        if (!nameRegex.test(lname)) return res.status(400).send({ status: false, message: "lname should contain alphabets only." });
+        if (!emailRegex.test(email)) return res.status(400).send({ status: false, message: "Enter email in a valid format." });
+        if (!phoneRegex.test(phone)) return res.status(400).send({ status: false, message: "Enter the phone number in a valid Indian format." });
+        if (!passRegex.test(password)) return res.status(400).send({ status: false, message: "Password should be 8-15 characters long alphanumeric with at least one uppercase, one lowercase and one special character." });
 
+        const emailFound = await userModel.findOne({ email });
+        if (emailFound) return res.status(400).send({ status: false, message: "email is not unique."});
+        const phoneFound = await userModel.findOne({ phone });
+        if (phoneFound) return res.status(400).send({ status: false, message: "phone number is not unique."});
+
+        if (typeof address === 'string') data.address = JSON.parse(address);
+        // console.log(data.address);
+        if (!isValidBody(data.address) || typeof data.address !== 'object') return res.status(400).send({ status: false, message: "No data provided in address." })
+
+        if (typeof data.address.shipping === 'string') data.address.shipping = JSON.parse(data.address.shipping);
+        if (typeof data.address.billing === 'string') data.address.billing = JSON.parse(data.address.billing);
         let { shipping, billing } = data.address;
         let addressArr = { shipping, billing };
         keys = [...validation(addressArr)]
         if (keys.length > 0) return res.status(400).send({ status: false, message: `Enter the following mandatory fields: [${keys}]`});
 
         {
-            let { street, city, pincode } = shipping
+            let { street, city, pincode } = shipping;
             let shippingArr = { street, city, pincode };
             keys = [...validation(shippingArr)];
             if (keys.length > 0) return res.status(400).send({ status: false, message: `Enter the following mandatory fields: [${keys}] in shipping address.`});
+            if (!nameRegex.test(city)) return res.status(400).send({ status: false, message: "city name should contain alphabets only." });
+            if (!pinRegex.test(pincode)) return res.status(400).send({ status: false, message: "pincode should be numeric." });
         }
 
         {
-            let { street, city, pincode } = billing
+            let { street, city, pincode } = billing;
             let billingArr = { street, city, pincode };
             keys = [...validation(billingArr)];
             if (keys.length > 0) return res.status(400).send({ status: false, message: `Enter the following mandatory fields: [${keys}] in billing address.`});
+            if (!nameRegex.test(city)) return res.status(400).send({ status: false, message: "city name should contain alphabets only." });
+            if (!pinRegex.test(pincode)) return res.status(400).send({ status: false, message: "pincode should be numeric." });
         }
 
         let files = req.files
@@ -89,4 +106,50 @@ const createUser = async function (req, res) {
     }
 }
 
-module.exports = { createUser }
+
+
+const loginUser = async function (req, res) {
+    try {
+        let email = req.body.email
+        let password = req.body.password
+        if (!email || !password) return res.status(400).send({ status: false, msg: "Provide the email and password to login." })  // if either email, password or both not present in the request body.
+
+        if (!emailRegex.test(email))  // --> email should be provided in right format
+            return res.status(400).send({ status: false, message: "Please enter a valid emailId." })
+
+        let user = await userModel.findOne({ email })  // to find that particular user document.
+        if (!user) return res.status(401).send({ status: false, message: "Email or password is incorrect." })  // if the user document isn't found in the database.
+
+        let value = await bcrypt.compare(password.toString(), user.password);
+        if (!value) return res.status(401).send({ status: false, message: "Email or password is incorrect.⚠️" })
+
+        let token = jwt.sign(  // --> to generate the jwt token
+            {
+                userId: user._id.toString(),                            // --> payload
+                exp: Math.floor(Date.now() / 1000) + (60 * 60 * 2),     // --> expiry set for 2 hours
+                iat: Math.floor(Date.now() / 1000)
+            },
+            "avinash-shubhro-dhiraj-santosh"                            // --> secret key
+        )
+
+        res.setHeader("x-api-key", token)  // to send the token in the header of the browser used by the user.
+        return res.status(200).send({ status: true, message: 'User login successful', data: { userId: user._id, token: token } })  // token is shown in the response body.
+    } catch (err) {
+        return res.status(500).send({ status: false, err: err.message })
+    }
+}
+
+
+
+const getProfile = async function (req, res) {
+    try {
+        let user = await userModel.findById(req.userId);
+        return res.status(200).send({ status: true, message: "User profile details", data: user });
+    } catch (err) {
+        return res.status(500).send({ status: false, message: err.message });
+    }
+}
+
+
+
+module.exports = { createUser, loginUser, getProfile }

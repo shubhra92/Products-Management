@@ -85,8 +85,8 @@
 ```
 
 ### POST /login
-- Allow an user to login with their email and password.
-- On a successful login attempt return the userId and a JWT token contatining the userId, exp, iat.
+- Allow a user to login with their email and password.
+- On a successful login attempt return the userId and a JWT token containing the userId, exp, iat.
 > **_NOTE:_** There is a slight change in response body. You should also return userId in addition to the JWT token.
 - __Response format__
   - _**On success**_ - Return HTTP status 200 and JWT token in response body. The response should be a JSON object like [this](#successful-response-structure)
@@ -103,8 +103,8 @@
 ```
 
 ## GET /user/:userId/profile (Authentication required)
-- Allow an user to fetch details of their profile.
-- Make sure that userId in url param and in token is same
+- Allow a user to fetch details of their profile.
+- Make sure that userId in url param and in token is same.
 - __Response format__
   - _**On success**_ - Return HTTP status 200 and returns the user document. The response should be a JSON object like [this](#successful-response-structure)
   - _**On error**_ - Return a suitable error message with a valid HTTP status code. The response should be a JSON object like [this](#error-response-structure)
