@@ -18,16 +18,16 @@ const verifyFunc = token => {
 const auth = async function (req, res, next) {
     try {
         let token = req.headers.authorization
-        if (!token) return res.status(401).send( { status: false, msg: "token must be present in request header."} );
+        if (!token) return res.status(401).send({ status: false, message: "token must be present in request header."});
         token = token.split(' ')[1];
 
         let decodedToken = verifyFunc(token);
         if (!decodedToken) return res.status(403).send({ status: false, message: "invalid token" });
 
         let userId = req.params.userId
-        if (!userId || !mongoose.Types.ObjectId.isValid(userId) ) return res.status(400).send({ status: false, message: "Provide a valid userId." })
+        if (!userId || !mongoose.Types.ObjectId.isValid(userId)) return res.status(400).send({ status: false, message: "Provide a valid userId." })
 
-        if (userId !== decodedToken.userId) return res.status(403).send({ status: false, message: "userId in params doesn't match with that in token."});
+        if (userId !== decodedToken.userId) return res.status(403).send({ status: false, message: "Authorization failed: userId in params doesn't match with that in token."});
         req.userId = userId;
         next();
     } catch (err) {

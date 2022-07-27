@@ -6,5 +6,6 @@ const commonMid = require('../middlewares/middleware');
 router.post('/register', userController.createUser);
 router.post('/login', userController.loginUser);
 router.get('/user/:userId/profile', commonMid.auth, userController.getProfile);
+router.put('/user/:userId/profile', commonMid.auth, userController.updateProfile);
 
 module.exports = router

@@ -1,8 +1,9 @@
 const userModel = require('../models/userModel');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { isValid, isValidBody, validation, nameRegex, emailRegex, phoneRegex, passRegex, pinRegex } = require('../validations/validator')
-const aws= require("aws-sdk")
+const { isValid, isValidBody, validation, parsingFunc, nameRegex, emailRegex, phoneRegex, passRegex, pinRegex } = require('../validations/validator')
+const aws = require("aws-sdk");
+const { restart } = require('nodemon');
 
 
 aws.config.update({
@@ -13,27 +14,27 @@ aws.config.update({
 
 
 let uploadFile = async (file) => {
-   return new Promise( function (resolve, reject) {
-    // this function will upload file to aws and return the link
-    let s3= new aws.S3({apiVersion: '2006-03-01'}); // we will be using the s3 service of aws
+    return new Promise(function (resolve, reject) {
+        // this function will upload file to aws and return the link
+        let s3 = new aws.S3({ apiVersion: '2006-03-01' }); // we will be using the s3 service of aws
 
-    var uploadParams= {
-        ACL: "public-read",
-        Bucket: "classroom-training-bucket",  //HERE
-        Key: "abc/" + file.originalname, //HERE 
-        Body: file.buffer
-    }
-
-    s3.upload( uploadParams, function (err, data) {
-        if (err) {
-            return reject({"error": err})
+        var uploadParams = {
+            ACL: "public-read",
+            Bucket: "classroom-training-bucket",  //HERE
+            Key: "abc/" + file.originalname, //HERE 
+            Body: file.buffer
         }
-        // console.log(data)
-        console.log("file uploaded succesfully")
-        return resolve(data.Location)
-    })
 
-   })
+        s3.upload(uploadParams, function (err, data) {
+            if (err) {
+                return reject({ "error": err })
+            }
+            // console.log(data)
+            console.log("file uploaded succesfully")
+            return resolve(data.Location)
+        })
+
+    })
 }
 
 
@@ -46,7 +47,7 @@ const createUser = async function (req, res) {
 
         let arr = { fname, lname, email, phone, password, address };
         let keys = [...validation(arr)]
-        if (keys.length > 0) return res.status(400).send({ status: false, message: `Enter the following mandatory fields: [${keys}]`});
+        if (keys.length > 0) return res.status(400).send({ status: false, message: `Enter the following mandatory fields: [${keys}]` });
 
         if (!nameRegex.test(fname)) return res.status(400).send({ status: false, message: "fname should contain alphabets only." });
         if (!nameRegex.test(lname)) return res.status(400).send({ status: false, message: "lname should contain alphabets only." });
@@ -55,26 +56,26 @@ const createUser = async function (req, res) {
         if (!passRegex.test(password)) return res.status(400).send({ status: false, message: "Password should be 8-15 characters long alphanumeric with at least one uppercase, one lowercase and one special character." });
 
         const emailFound = await userModel.findOne({ email });
-        if (emailFound) return res.status(400).send({ status: false, message: "email is not unique."});
+        if (emailFound) return res.status(400).send({ status: false, message: "email is not unique." });
         const phoneFound = await userModel.findOne({ phone });
-        if (phoneFound) return res.status(400).send({ status: false, message: "phone number is not unique."});
+        if (phoneFound) return res.status(400).send({ status: false, message: "phone number is not unique." });
 
-        if (typeof address === 'string') data.address = JSON.parse(address);
+        if (typeof address === 'string') data.address = parsingFunc(address);
         // console.log(data.address);
         if (!isValidBody(data.address) || typeof data.address !== 'object') return res.status(400).send({ status: false, message: "No data provided in address." })
 
-        if (typeof data.address.shipping === 'string') data.address.shipping = JSON.parse(data.address.shipping);
-        if (typeof data.address.billing === 'string') data.address.billing = JSON.parse(data.address.billing);
+        if (typeof data.address.shipping === 'string') data.address.shipping = parsingFunc(data.address.shipping);
+        if (typeof data.address.billing === 'string') data.address.billing = parsingFunc(data.address.billing);
         let { shipping, billing } = data.address;
         let addressArr = { shipping, billing };
         keys = [...validation(addressArr)]
-        if (keys.length > 0) return res.status(400).send({ status: false, message: `Enter the following mandatory fields: [${keys}]`});
+        if (keys.length > 0) return res.status(400).send({ status: false, message: `Enter the following mandatory fields: [${keys}]` });
 
         {
             let { street, city, pincode } = shipping;
             let shippingArr = { street, city, pincode };
             keys = [...validation(shippingArr)];
-            if (keys.length > 0) return res.status(400).send({ status: false, message: `Enter the following mandatory fields: [${keys}] in shipping address.`});
+            if (keys.length > 0) return res.status(400).send({ status: false, message: `Enter the following mandatory fields: [${keys}] in shipping address.` });
             if (!nameRegex.test(city)) return res.status(400).send({ status: false, message: "city name should contain alphabets only." });
             if (!pinRegex.test(pincode)) return res.status(400).send({ status: false, message: "pincode should be numeric." });
         }
@@ -83,17 +84,17 @@ const createUser = async function (req, res) {
             let { street, city, pincode } = billing;
             let billingArr = { street, city, pincode };
             keys = [...validation(billingArr)];
-            if (keys.length > 0) return res.status(400).send({ status: false, message: `Enter the following mandatory fields: [${keys}] in billing address.`});
+            if (keys.length > 0) return res.status(400).send({ status: false, message: `Enter the following mandatory fields: [${keys}] in billing address.` });
             if (!nameRegex.test(city)) return res.status(400).send({ status: false, message: "city name should contain alphabets only." });
             if (!pinRegex.test(pincode)) return res.status(400).send({ status: false, message: "pincode should be numeric." });
         }
 
         let files = req.files
-        if(!files || files.length === 0) return res.status(400).send({ status: false, message: "No profileImage found." })
-        
+        if (!files || files.length === 0) return res.status(400).send({ status: false, message: "No profileImage found." })
+
         //upload to s3 and get the uploaded link
-        data.profileImage = await uploadFile( files[0] )
-        
+        data.profileImage = await uploadFile(files[0])
+
         const salt = await bcrypt.genSalt(10);
         const hashedPass = await bcrypt.hash(password, salt);
         data.password = hashedPass;
@@ -112,7 +113,7 @@ const loginUser = async function (req, res) {
     try {
         let email = req.body.email
         let password = req.body.password
-        if (!email || !password) return res.status(400).send({ status: false, msg: "Provide the email and password to login." })  // if either email, password or both not present in the request body.
+        if (!email || !password) return res.status(400).send({ status: false, message: "Provide the email and password to login." })  // if either email, password or both not present in the request body.
 
         if (!emailRegex.test(email))  // --> email should be provided in right format
             return res.status(400).send({ status: false, message: "Please enter a valid emailId." })
@@ -152,4 +153,79 @@ const getProfile = async function (req, res) {
 
 
 
-module.exports = { createUser, loginUser, getProfile }
+const updateProfile = async function (req, res) {
+    try {
+        let data = req.body;
+        data = { ...parsingFunc(data) };
+
+        if (!isValidBody(data)) return res.status(400).send({ status: false, message: "No data found to update." })
+        let { fname, lname, email, phone, password, address } = data;
+
+        const validUkeys = function (value) {
+            let regex = { fname: nameRegex, lname: nameRegex, email: emailRegex, phone: phoneRegex, password: passRegex, city: nameRegex, pincode: pinRegex };
+            let msgs = {
+                fname: "fname should contain alphabets only.",
+                lname: "lname should contain alphabets only.",
+                email: "email is not valid.",
+                phone: "Enter the phone number in a valid Indian format.",
+                password: "Password should be 8-15 characters long alphanumeric with at least one uppercase, one lowercase and one special character.",
+                address: "Provide address.",
+                shipping: "Provide shipping address.",
+                billing: "Provide billing address.",
+                street: "Provide street",
+                city: "city name should contain alphabets only.",
+                pincode: "pincode should be numeric."
+            }
+
+            for (let i of Object.keys(value)) {
+                if (msgs[i]) {
+                    if (!isValid(value[i])) return { status: false, message: `Provide ${i}` }
+                    if (regex[i] && !regex[i].test(value[i].trim())) return { status: false, message: msgs[i] }
+                }
+            }
+        }
+
+        let resValidUkeys = validUkeys(data);
+        if (resValidUkeys) return res.status(400).send(resValidUkeys);
+
+        if (address) {
+            address = parsingFunc(address);
+            if (typeof address !== 'object') return res.status(400).send({ status: false, message: "invalid address." })
+            resValidUkeys = validUkeys(address);
+            if (resValidUkeys) return res.status(400).send(resValidUkeys);
+
+            if (address['shipping']) {
+                if (typeof address['shipping'] !== 'object') return res.status(400).send({ status: false, message: "invalid shipping address." })
+                resValidUkeys = validUkeys(address['shipping']);
+                if (resValidUkeys) return res.status(400).send(resValidUkeys);
+            }
+            if (address.billing) {
+                if (typeof address.billing !== 'object') return res.status(400).send({ status: false, message: "invalid billing address." })
+                resValidUkeys = validUkeys(address.billing);
+                if (resValidUkeys) return res.status(400).send(resValidUkeys);
+            }
+        }
+
+        let files = req.files
+        if (files && files.length > 0) data.profileImage = await uploadFile(files[0])
+
+        if (password) {
+            if (!passRegex.test(password)) return res.status(400).send({ status: false, message: "Password should be 8-15 characters long alphanumeric with at least one uppercase, one lowercase and one special character." });
+            const salt = await bcrypt.genSalt(10);
+            const hashedPass = await bcrypt.hash(password, salt);
+            data.password = hashedPass;
+        }
+
+        let userUpdated = await userModel.findByIdAndUpdate(
+            req.userId, 
+            { fname, lname, email, phone, password, address, profileImage: data.profileImage },
+            { new: true });
+        return res.status(200).send({ status: true, message: 'User profile updated', data: userUpdated })
+    } catch (err) {
+        return res.status(500).send({ status: false, message: err.message })
+    }
+}
+
+
+
+module.exports = { createUser, loginUser, getProfile, updateProfile }
