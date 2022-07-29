@@ -30,11 +30,13 @@ const parsingFunc = function (key) {
 }
 
 
+
 let nameRegex = /^[a-zA-Z]+$/
 let emailRegex = /^[a-z]{1}[a-z0-9._]{1,100}[@]{1}[a-z]{2,15}[.]{1}[a-z]{2,10}$/
 let phoneRegex = /^(\+91[\-\s]?)?[0]?(91)?[6789]\d{9}$/
 let passRegex = /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,15}$/
 let pinRegex = /^\d{6}$/
+let numberRegex = /^\d+$/
 
 
-module.exports = { isValid, isValidBody, validation, parsingFunc, nameRegex, emailRegex, phoneRegex, passRegex, pinRegex }
+module.exports = { isValid, isValidBody, validation, parsingFunc, nameRegex, emailRegex, phoneRegex, passRegex, pinRegex, numberRegex }

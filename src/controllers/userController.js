@@ -228,4 +228,4 @@ const updateProfile = async function (req, res) {
 
 
 
-module.exports = { createUser, loginUser, getProfile, updateProfile }
+module.exports = { uploadFile, createUser, loginUser, getProfile, updateProfile }

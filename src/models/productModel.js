@@ -5,16 +5,16 @@ const productSchema = new mongoose.Schema({
     title: { type: String, required: true, unique: true, trim: true },
     description: { type: String, required: true, trim: true },
     price: { type: Number, required: true },
-    currencyId: { type: String, required: true },
-    currencyFormat: { type: String, required: true },
+    currencyId: { type: String, required: true, trim: true },
+    currencyFormat: { type: String, required: true, trim: true },
     isFreeShipping: { type: Boolean, default: false },
     productImage: { type: String, required: true },  // s3 link
-    style: String,
-    availableSizes: { type: [String], required: true }, // enum["S", "XS","M","X", "L","XXL", "XL"]},
+    style: { type: String, trim: true },
+    availableSizes: [{ type: String, required: true, trim: true }],  // enum["S", "XS","M","X", "L","XXL", "XL"]},
     installments: Number,
     deletedAt: Date,
     isDeleted: { type: Boolean, default: false }
 
 }, { timestamps: true } );
 
-module.exports = mongoose.model('Product', productSchema)
+module.exports = mongoose.model('Product', productSchema);
