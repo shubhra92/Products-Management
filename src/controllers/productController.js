@@ -113,7 +113,7 @@ const updateProductById = async function (req, res) {
         function validKeysToUpdate (obj) {
             let arr = [];
             let arr2 = ['title', 'description', 'price', 'currencyId', 'currencyFormat', 'isFreeShipping', 'style', 'availableSizes', 'installments'];
-            let regex = { price: numberRegex, installments: numberRegex,currencyId: /^[Ii]+[Nn]+[Rr]+$/, currencyFormat: /^[₹]+$/ };
+            let regex = { price: numberRegex, installments: numberRegex, currencyId: /^[Ii]+[Nn]+[Rr]+$/, currencyFormat: /^[₹]+$/ };
             let msgs = { price: "price should be numeric only.", installments: "installments should be numeric only.", currencyId: "currencyId should be 'INR' only.", currencyFormat: "currencyFormat should be '₹' only." }
             
             for (let i of arr2) {
@@ -122,7 +122,7 @@ const updateProductById = async function (req, res) {
                     else if (regex[i] && !regex[i].test(obj[i].trim())) return res.status(400).send({ status: false, message: msgs[i]});
                 }
             }
-            if (arr.length > 0) return res.status(400).send({ status: false, message: `Provide data in ${arr}`});
+            if (arr.length > 0) return res.status(400).send({ status: false, message: `Provide data in ${arr}` });
         }
         
         validKeysToUpdate(data);
@@ -151,12 +151,13 @@ const updateProductById = async function (req, res) {
         let files = req.files;
         if (files && files.length > 0) data.productImage = await uploadFile(files[0]);
         
-        let updatedProduct = await productModel.findOne(
+        let updatedProduct = await productModel.findOneAndUpdate(
             { isDeleted: false, _id: productId },
             data,
             {new: true}
         )
 
+        if (!updatedProduct) return res.status(404).send({ status: false, message: "No product found by this productId to update." })
         return res.status(200).send({ status: true, message: 'Product updated successfully', data: updatedProduct });
     } catch (err) {
         return res.status(500).send({ status: false, message: err.message });

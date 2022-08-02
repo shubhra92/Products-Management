@@ -274,7 +274,7 @@ Send [form-data](https://developer.mozilla.org/en-US/docs/Web/API/FormData)
 - Make sure that cart exist.
 - Add a product(s) for a user in the cart.
 - Make sure the userId in params and in JWT token match.
-- Make sure the user exist
+- Make sure the user exist.
 - Make sure the product(s) are valid and not deleted.
 - Get product(s) details in response body.
 - __Response format__

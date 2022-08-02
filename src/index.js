@@ -4,7 +4,6 @@ const routes = require('./routes/routes');
 const mongoose = require('mongoose');
 const multer = require('multer');
 
-
 app.use(multer({
   fileFilter: (req, file, cb) => {
     if (file.mimetype == "image/png" || file.mimetype == "image/jpg" || file.mimetype == "image/jpeg") {
@@ -21,13 +20,10 @@ app.use(function (e, req, res, next) {
   next();
 })
 
-
-app.use(express.json());
-
+// app.use(express.json());
 
 mongoose.connect('mongodb+srv://avi-sin:CJTIF4CupXQdRKHV@cluster0.ovf3r.mongodb.net/group66Database')
   .then(() => console.log('MongoDb is connected...'), (err) => console.log(err))
-
 
 app.use(routes);
 

@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const userModel = require("../models/userModel");
+// const userModel = require("../models/userModel");
 const mongoose = require('mongoose');
 
 
@@ -34,6 +34,7 @@ const auth = async function (req, res, next) {
         return res.status(500).send({ status: false, message: err.message })
     }
 }
+
 
 
 module.exports = { auth }
