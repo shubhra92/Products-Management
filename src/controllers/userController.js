@@ -61,8 +61,7 @@ const createUser = async function (req, res) {
         if (phoneFound) return res.status(400).send({ status: false, message: "phone number is not unique." });
 
         if (typeof address === 'string') data.address = parsingFunc(address);
-        // console.log(data.address);
-        if (!isValidBody(data.address) || typeof data.address !== 'object') return res.status(400).send({ status: false, message: "No data provided in address." })
+        if (!isValidBody(data.address) || typeof data.address !== 'object') return res.status(400).send({ status: false, message: "No data provided in address." });
 
         if (typeof data.address.shipping === 'string') data.address.shipping = parsingFunc(data.address.shipping);
         if (typeof data.address.billing === 'string') data.address.billing = parsingFunc(data.address.billing);
@@ -92,7 +91,6 @@ const createUser = async function (req, res) {
         let files = req.files
         if (!files || files.length === 0) return res.status(400).send({ status: false, message: "No profileImage found." })
 
-        //upload to s3 and get the uploaded link
         data.profileImage = await uploadFile(files[0])
 
         const salt = await bcrypt.genSalt(10);
@@ -100,7 +98,6 @@ const createUser = async function (req, res) {
         data.password = hashedPass;
 
         const userCreated = await userModel.create(data);
-        // console.log(userCreated);
         return res.status(201).send({ status: true, message: 'User created successfully', data: userCreated });
     } catch (err) {
         return res.status(500).send({ status: false, message: err.message })

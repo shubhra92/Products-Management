@@ -32,7 +32,7 @@ const createCart = async function (req, res) {
             const cartDoc = { userId: userId, items: prodQuantity, totalPrice: product.price * quantity, totalItems: 1 };
 
             await cartModel.create(cartDoc);
-            const findCart = await cartModel.findOne({ userId }).populate('items.productId', 'title description price productImage'); // ?????
+            const findCart = await cartModel.findOne({ userId }).populate('items.productId', 'title price productImage isFreeShipping');
             return res.status(201).send({ status: true, message: 'Cart created successfully', data: findCart });
 
         } else {
@@ -57,7 +57,7 @@ const createCart = async function (req, res) {
                 { userId },
                 cart,
                 { new: true }
-            ).populate('items.productId', 'title description price productImage');
+            ).populate('items.productId', 'title price productImage isFreeShipping');
 
             return res.status(201).send({ status: true, message: 'Cart created successfully', data: cartUpdated });
         }
@@ -105,15 +105,15 @@ const updateCart = async function (req, res) {
                 break;
             }
         }
-        if (!exist) return res.status(404).send({ status: false, message: "productId doesn't exist in the cart." });  // ?????
+        if (!exist) return res.status(404).send({ status: false, message: "productId doesn't exist in the cart." });
 
         let updatedCart = await cartModel.findOneAndUpdate(
             { userId },
             cart,
             { new: true }
-        ).populate('items.productId', 'title description price productImage');
+        ).populate('items.productId', 'title price productImage isFreeShipping');
 
-        if (!updatedCart.items.length) return res.status(200).send({ status: true, message: "Successfully updated. Your cart is now empty.🛒" });  // ?????
+        if (!updatedCart.items.length) return res.status(200).send({ status: true, message: "Successfully updated. Your cart is now empty.🛒" });
         return res.status(200).send({ status: true, message: 'Cart successfully updated.', data: updatedCart });
     } catch (err) {
         return res.status(500).send({ status: false, message: err.message });
@@ -125,7 +125,7 @@ const updateCart = async function (req, res) {
 const getCart = async function (req, res) {
     try {
         const userId = req.params.userId;
-        const cart = await cartModel.findOne({ userId }).populate('items.productId', 'title description price productImage');
+        const cart = await cartModel.findOne({ userId }).populate('items.productId', 'title price productImage isFreeShipping');
         if (!cart) return res.status(400).send({ status: false, message: "Cart does not exist for this user." });
         if (!cart.items.length) return res.status(200).send({ status: true, message: "Your cart is empty.🛒" });
         return res.status(200).send({ status: true, message: "Success", data: { cart } });

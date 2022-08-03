@@ -31,7 +31,7 @@ const auth = async function (req, res, next) {
         req.userId = userId;
         next();
     } catch (err) {
-        return res.status(500).send({ status: false, message: err.message })
+        return res.status(500).send({ status: false, message: err.message });
     }
 }
 

@@ -8,8 +8,7 @@ const { uploadFile } = require('./userController');
 const createProduct = async function (req, res) {
     try {
         let data = req.body;
-        if (!isValidBody(data)) return res.status(400).send({ status: false, message: "No data provided in the request body." })
-        // console.log(data);
+        if (!isValidBody(data)) return res.status(400).send({ status: false, message: "No data provided in the request body." });
         let { title, description, price, currencyId, currencyFormat, isFreeShipping, style, availableSizes, installments } = data;
 
         const mandatoryFields = { title, description, price, currencyId, currencyFormat, availableSizes };
@@ -38,7 +37,7 @@ const createProduct = async function (req, res) {
         let enumerated = ['S', 'XS', 'M', 'X', 'L', 'XXL', 'XL'];
         let withoutSpaceSizes = [];
         availableSizes.trim().split(',').map(x => x.trim()).forEach(x => { if (isValid(x)) withoutSpaceSizes.push(x) });
-        data.availableSizes = [...withoutSpaceSizes];
+        data.availableSizes = [...withoutSpaceSizes].map(x => x.toUpperCase());
 
         let wrongSizes = [];
         for (let size of data.availableSizes) {
@@ -46,7 +45,7 @@ const createProduct = async function (req, res) {
         }
         if (wrongSizes.length > 0) return res.status(400).send({ status: false, message: `${wrongSizes} sizes not included in [${enumerated}].` })
 
-        data.isFreeShipping = isFreeShipping.trim() === 'true' ? true : false;
+        if (isFreeShipping) data.isFreeShipping = isFreeShipping.trim() === 'true' ? true : false;
 
         data.productImage = await uploadFile(files[0]);
         data.currencyId = 'INR';
@@ -113,7 +112,8 @@ const updateProductById = async function (req, res) {
         function validKeysToUpdate (obj) {
             let arr = [];
             let arr2 = ['title', 'description', 'price', 'currencyId', 'currencyFormat', 'isFreeShipping', 'style', 'availableSizes', 'installments'];
-            let regex = { price: numberRegex, installments: numberRegex, currencyId: /^[Ii]+[Nn]+[Rr]+$/, currencyFormat: /^[₹]+$/ };
+            let regex = { price: numberRegex, installments: numberRegex, currencyId: /^([Ii]\1+[Nn]\1+[Rr]\1)+$/, currencyFormat: /^[₹]+$/ };
+
             let msgs = { price: "price should be numeric only.", installments: "installments should be numeric only.", currencyId: "currencyId should be 'INR' only.", currencyFormat: "currencyFormat should be '₹' only." }
             
             for (let i of arr2) {
