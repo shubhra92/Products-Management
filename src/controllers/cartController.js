@@ -143,7 +143,7 @@ const delCart = async function (req, res) {
         if (!cart) return res.status(404).send({ status: false, message: "The user's cart has not been created yet." });
         if (!cart.items.length) return res.status(400).send({ status: false, message: "The user's cart is already deleted." });
         await cartModel.findOneAndUpdate({userId}, {items: [], totalPrice: 0, totalItems: 0});
-        return res.status(200).send({ status: true, message: "Cart successfully deleted." });
+        return res.status(204)//.send({ status: true, message: "Cart successfully deleted." });
     } catch (err) {
         return res.status(500).send({ status: false, message: err.message });
     }

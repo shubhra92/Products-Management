@@ -9,7 +9,7 @@ const createOrder = async function (req, res) {
     try {
         const userId = req.params.userId;
         const data = req.body;
-        const { cartId, cancellable, status } = data;
+        const { cartId, cancellable } = data;
         const cart = await cartModel.findOne({ userId }).select({ createdAt: 0, updatedAt: 0, __v: 0 }).lean();
 
         if (!cart) return res.status(404).send({ status: false, message: "This user's cart has not been created yet." });
@@ -23,9 +23,14 @@ const createOrder = async function (req, res) {
         let totalQuantity = 0;
         cart.items.forEach(x => totalQuantity += x.quantity);
         const order = { ...cart, totalQuantity };
+        if (cancellable) {
+            if (cancellable !== 'true' || 'false') return res.status(400).send({ status: false, message: "Provide either 'true' or 'false' in cancellable." });
+            order.cancellable = cancellable === 'true' ? true : false;
+        }
 
-        const orderCreated = await orderModel.create(order);
+        let orderCreated = await orderModel.create(order);
         await cartModel.findOneAndUpdate({ userId }, { items: [], totalPrice: 0, totalItems: 0 });
+        orderCreated = await orderModel.findOne(order).populate('items.productId', 'title price productImage isFreeShipping');
         return res.status(201).send({ status: true, message: "Order created successfully", data: orderCreated });
     } catch (err) {
         return res.status(500).send({ status: false, message: err.message });
@@ -54,11 +59,13 @@ const updateOrder = async function (req, res) {
         }
 
         if (status == 'completed') {
-            const updatedOrder = await orderModel.findByIdAndUpdate( orderId, { status, cancellable: false }, { new: true } );
+            const updatedOrder = await orderModel.findByIdAndUpdate( orderId, { status }, { new: true } )
+            .populate('items.productId', 'title price productImage isFreeShipping');
             return res.status(200).send({ status: true, message: 'Order completed successfully', data: updatedOrder });
         } else {
             if (order.cancellable == false) return res.status(400).send({ status: false, message: "Order is not cancellable." });
-            const updatedOrder = await orderModel.findByIdAndUpdate( orderId, { status, cancellable: false }, { new: true } );
+            const updatedOrder = await orderModel.findByIdAndUpdate( orderId, { status }, { new: true } )
+            .populate('items.productId', 'title price productImage isFreeShipping');
             return res.status(200).send({ status: true, message: 'Order cancelled successfully', data: updatedOrder });
         }
     } catch (err) {
