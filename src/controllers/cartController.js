@@ -33,11 +33,11 @@ const createCart = async function (req, res) {
 
             await cartModel.create(cartDoc);
             const findCart = await cartModel.findOne({ userId }).populate('items.productId', 'title price productImage isFreeShipping');
-            return res.status(201).send({ status: true, message: 'Cart created successfully', data: findCart });
+            return res.status(201).send({ status: true, message: 'Success', data: findCart });
 
         } else {
             if (cartId) {
-                if (cart._id !== cartId) return res.status(404).send({ status: false, message: "cartId doesn't exist." });
+                if (`${cart._id}` !== cartId) return res.status(404).send({ status: false, message: "cartId doesn't exist." });
             }
 
             let exist = false;
@@ -59,7 +59,7 @@ const createCart = async function (req, res) {
                 { new: true }
             ).populate('items.productId', 'title price productImage isFreeShipping');
 
-            return res.status(201).send({ status: true, message: 'Cart created successfully', data: cartUpdated });
+            return res.status(201).send({ status: true, message: 'Success', data: cartUpdated });
         }
     } catch (err) {
         return res.status(500).send({ status: false, message: err.message });
@@ -114,7 +114,7 @@ const updateCart = async function (req, res) {
         ).populate('items.productId', 'title price productImage isFreeShipping');
 
         if (!updatedCart.items.length) return res.status(200).send({ status: true, message: "Successfully updated. Your cart is now empty.🛒" });
-        return res.status(200).send({ status: true, message: 'Cart successfully updated.', data: updatedCart });
+        return res.status(200).send({ status: true, message: 'Success', data: updatedCart });
     } catch (err) {
         return res.status(500).send({ status: false, message: err.message });
     }
@@ -128,7 +128,7 @@ const getCart = async function (req, res) {
         const cart = await cartModel.findOne({ userId }).populate('items.productId', 'title price productImage isFreeShipping');
         if (!cart) return res.status(400).send({ status: false, message: "Cart does not exist for this user." });
         if (!cart.items.length) return res.status(200).send({ status: true, message: "Your cart is empty.🛒" });
-        return res.status(200).send({ status: true, message: "Success", data: { cart } });
+        return res.status(200).send({ status: true, message: "Success", data: cart });
     } catch (err) {
         return res.status(500).send({ status: false, message: err.message });
     }
@@ -143,7 +143,7 @@ const delCart = async function (req, res) {
         if (!cart) return res.status(404).send({ status: false, message: "The user's cart has not been created yet." });
         if (!cart.items.length) return res.status(400).send({ status: false, message: "The user's cart is already deleted." });
         await cartModel.findOneAndUpdate({userId}, {items: [], totalPrice: 0, totalItems: 0});
-        return res.status(204)//.send({ status: true, message: "Cart successfully deleted." });
+        return res.status(204).send();
     } catch (err) {
         return res.status(500).send({ status: false, message: err.message });
     }

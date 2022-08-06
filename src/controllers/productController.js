@@ -11,7 +11,7 @@ const createProduct = async function (req, res) {
         if (!isValidBody(data)) return res.status(400).send({ status: false, message: "No data provided in the request body." });
         let { title, description, price, currencyId, currencyFormat, isFreeShipping, style, availableSizes, installments } = data;
 
-        const mandatoryFields = { title, description, price, currencyId, currencyFormat, availableSizes };
+        const mandatoryFields = { title, description, price, availableSizes };
         let keys = [...validation(mandatoryFields)];
         if (keys.length > 0) return res.status(400).send({ status: false, message: `Enter the following mandatory fields: [${keys}]` });
 
@@ -23,8 +23,12 @@ const createProduct = async function (req, res) {
         if (titlePresent) return res.status(400).send({ status: false, message: "title is not unique." });
 
         if (!numberRegex.test(price.trim())) return res.status(400).send({ status: false, message: "price should be numeric only." });
-        if (currencyId.trim().toUpperCase() !== 'INR') return res.status(400).send({ status: false, message: "currencyId should be 'INR' only." });
-        if (currencyFormat.trim() !== '₹') return res.status(400).send({ status: false, message: "currencyFormat should be '₹' only." });
+        if (isValid(currencyId)) {
+            if (currencyId.trim().toUpperCase() !== 'INR') return res.status(400).send({ status: false, message: "currencyId should be 'INR' only." });
+        }
+        if (isValid(currencyFormat)) {
+            if (currencyFormat.trim() !== '₹') return res.status(400).send({ status: false, message: "currencyFormat should be '₹' only." });
+        }
         if (Object.keys(data).includes('installments')) {
             if (!isValid(installments)) return res.status(400).send({ status: false, message: "Provide data in installments." });
             if (!numberRegex.test(installments.trim())) return res.status(400).send({ status: false, message: "installments should be numeric only." });
@@ -49,6 +53,7 @@ const createProduct = async function (req, res) {
 
         data.productImage = await uploadFile(files[0]);
         data.currencyId = 'INR';
+        data.currencyFormat = '₹';
         data.isDeleted = false;
         data.deletedAt = null;
 
@@ -67,14 +72,14 @@ const getByFilters = async function (req, res) {
 
         let filter = {}
         if (name) filter.title = new RegExp(name, 'i');
-        if (size) filter.availableSizes = size;
+        if (size) filter.availableSizes = size.toUpperCase();
         if (priceGreaterThan || priceLessThan) filter.price = { $gt: Number(priceGreaterThan) || 0, $lt: Number(priceLessThan) || Infinity };
 
         let products = await productModel.find({ isDeleted: false, ...filter });
         if (!products.length) return res.status(404).send({ status: false, message: "No product found." });
-
+    
         if (priceSort == -1) products.sort((a, b) => b.price - a.price);
-        else products.sort((a, b) => a.price - b.price);
+        else if (priceSort == 1) products.sort((a, b) => a.price - b.price);
 
         return res.status(200).send({ status: true, message: 'Success', data: products });
     } catch (err) {
@@ -119,13 +124,14 @@ const updateProductById = async function (req, res) {
             for (let i of arr2) {
                 if (Object.keys(obj).includes(i)) {
                     if (!isValid(obj[i])) arr.push(i);
-                    else if (regex[i] && !regex[i].test(obj[i].trim())) return res.status(400).send({ status: false, message: msgs[i]});
+                    else if (regex[i] && !regex[i].test(obj[i].trim())) return { status: false, message: msgs[i]};
                 }
             }
-            if (arr.length > 0) return res.status(400).send({ status: false, message: `Provide data in ${arr}` });
+            if (arr.length > 0) return { status: false, message: `Provide data in ${arr}` };
         }
         
-        validKeysToUpdate(data);
+        let x = validKeysToUpdate(data);
+        if (x) return res.status(400).send(x);
         
         if (title) {
             const title = await productModel.findOne({ title: title });
@@ -136,17 +142,19 @@ const updateProductById = async function (req, res) {
             else if (isFreeShipping.trim().toLowerCase() == 'false') data.isFreeShipping = false;
             else return res.status(400).send({ status: false, message: "Provide either 'true' or 'false' for isFreeShipping." });
         }
+        
+        if (availableSizes) {
+            let enumerated = ['S', 'XS', 'M', 'X', 'L', 'XXL', 'XL'];
+            let withoutSpaceSizes = [];
+            availableSizes.trim().split(',').map(x => x.trim()).forEach(x => { if (isValid(x)) withoutSpaceSizes.push(x) });
+            data.availableSizes = [...withoutSpaceSizes].map(x => x.toUpperCase());
 
-        let enumerated = ['S', 'XS', 'M', 'X', 'L', 'XXL', 'XL'];
-        let withoutSpaceSizes = [];
-        availableSizes.trim().split(',').map(x => x.trim()).forEach(x => { if (isValid(x)) withoutSpaceSizes.push(x) });
-        data.availableSizes = [...withoutSpaceSizes];
-
-        let wrongSizes = [];
-        for (let size of data.availableSizes) {
-            if (!enumerated.includes(size)) wrongSizes.push(size);
+            let wrongSizes = [];
+            for (let size of data.availableSizes) {
+                if (!enumerated.includes(size)) wrongSizes.push(size);
+            }
+            if (wrongSizes.length > 0) return res.status(400).send({ status: false, message: `${wrongSizes} sizes not included in [${enumerated}].` })
         }
-        if (wrongSizes.length > 0) return res.status(400).send({ status: false, message: `${wrongSizes} sizes not included in [${enumerated}].` })
 
         let files = req.files;
         if (files && files.length > 0) data.productImage = await uploadFile(files[0]);

@@ -20,14 +20,14 @@ router.put('/products/:productId', productController.updateProductById);
 router.delete('/products/:productId', productController.delProductById);
 
 
-router.post('/users/:userId/cart',/* commonMid.auth, */cartController.createCart);
-router.put('/users/:userId/cart',/* commonMid.auth, */cartController.updateCart);
-router.get('/users/:userId/cart',/* commonMid.auth, */cartController.getCart);
-router.delete('/users/:userId/cart',/* commonMid.auth, */cartController.delCart);
+router.post('/users/:userId/cart',commonMid.auth, cartController.createCart);
+router.put('/users/:userId/cart',commonMid.auth, cartController.updateCart);
+router.get('/users/:userId/cart',commonMid.auth, cartController.getCart);
+router.delete('/users/:userId/cart', commonMid.auth, cartController.delCart);
 
 
-router.post('/users/:userId/orders',/* commonMid.auth, */orderController.createOrder);
-router.post('/users/:userId/orders',/* commonMid.auth, */orderController.updateOrder);
+router.post('/users/:userId/orders', commonMid.auth, orderController.createOrder);
+router.put('/users/:userId/orders', commonMid.auth, orderController.updateOrder);
 
 
 module.exports = router;

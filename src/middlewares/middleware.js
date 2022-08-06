@@ -18,7 +18,7 @@ const verifyFunc = token => {
 const auth = async function (req, res, next) {
     try {
         let token = req.headers.authorization
-        if (!token) return res.status(401).send({ status: false, message: "token must be present in request header."});
+        if (!token) return res.status(401).send({ status: false, message: "Authentication failed: token must be present in request header."});
         token = token.split(' ')[1];
 
         let decodedToken = verifyFunc(token);

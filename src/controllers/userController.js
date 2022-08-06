@@ -47,7 +47,7 @@ const createUser = async function (req, res) {
 
         let arr = { fname, lname, email, phone, password, address };
         let keys = [...validation(arr)]
-        if (keys.length > 0) return res.status(400).send({ status: false, message: `Enter the following mandatory fields: [${keys}]` });
+        if (keys.length > 0) return res.status(400).send({ status: false, message: `Enter the following mandatory field(s): [${keys}]` });
 
         if (!nameRegex.test(fname)) return res.status(400).send({ status: false, message: "fname should contain alphabets only." });
         if (!nameRegex.test(lname)) return res.status(400).send({ status: false, message: "lname should contain alphabets only." });
@@ -60,7 +60,11 @@ const createUser = async function (req, res) {
         const phoneFound = await userModel.findOne({ phone });
         if (phoneFound) return res.status(400).send({ status: false, message: "phone number is not unique." });
 
-        if (typeof address === 'string') data.address = parsingFunc(address);
+        if (typeof address === 'string') {
+            data.address = parsingFunc(address); 
+            if(data.address.status===false) return res.status(400).send(data.address);
+        }
+
         if (!isValidBody(data.address) || typeof data.address !== 'object') return res.status(400).send({ status: false, message: "No data provided in address." });
 
         if (typeof data.address.shipping === 'string') data.address.shipping = parsingFunc(data.address.shipping);
@@ -158,7 +162,7 @@ const updateProfile = async function (req, res) {
         if (!isValidBody(data)) return res.status(400).send({ status: false, message: "No data found to update." })
         let { fname, lname, email, phone, password, address } = data;
 
-        const validUkeys = function (value) {
+        const validUkeys = function (value,valueNmae) {
             let regex = { fname: nameRegex, lname: nameRegex, email: emailRegex, phone: phoneRegex, password: passRegex, city: nameRegex, pincode: pinRegex };
             let msgs = {
                 fname: "fname should contain alphabets only.",
@@ -173,8 +177,9 @@ const updateProfile = async function (req, res) {
                 city: "city name should contain alphabets only.",
                 pincode: "pincode should be numeric."
             }
-
-            for (let i of Object.keys(value)) {
+            const arr = Object.keys(value);
+            if(arr.length==0)return { status: false, message: `provide data in ${valueNmae} to update` }
+            for (let i of arr) {
                 if (msgs[i]) {
                     if (!isValid(value[i])) return { status: false, message: `Provide ${i}` }
                     if (regex[i] && !regex[i].test(value[i].trim())) return { status: false, message: msgs[i] }
@@ -187,8 +192,10 @@ const updateProfile = async function (req, res) {
 
         if (address) {
             address = parsingFunc(address);
+            if(address.status===false) return res.status(400).send(address);
+
             if (typeof address !== 'object') return res.status(400).send({ status: false, message: "invalid address." })
-            resValidUkeys = validUkeys(address);
+            resValidUkeys = validUkeys(address,"address");
             if (resValidUkeys) return res.status(400).send(resValidUkeys);
 
             if (address['shipping']) {
