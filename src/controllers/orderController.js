@@ -24,7 +24,7 @@ const createOrder = async function (req, res) {
         cart.items.forEach(x => totalQuantity += x.quantity);
         const order = { ...cart, totalQuantity };
         if (cancellable) {
-            if (cancellable !== 'true' || 'false') return res.status(400).send({ status: false, message: "Provide either 'true' or 'false' in cancellable." });
+            if (cancellable !== 'true' || cancellable !== 'false') return res.status(400).send({ status: false, message: "Provide either 'true' or 'false' in cancellable." });
             order.cancellable = cancellable === 'true' ? true : false;
         }
 

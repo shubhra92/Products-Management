@@ -111,7 +111,7 @@ const updateProductById = async function (req, res) {
         let data = req.body;
         if (!isValidBody(data)) return res.status(400).send({ status: false, message: "No data provided in request body to update." });
 
-        let { title, description, price, currencyId, currencyFormat, isFreeShipping, style, availableSizes, installments } = data;
+        let { title, isFreeShipping, availableSizes } = data;
 
         
         function validKeysToUpdate (obj) {
