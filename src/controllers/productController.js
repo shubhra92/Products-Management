@@ -109,7 +109,11 @@ const updateProductById = async function (req, res) {
         if (!productId || !mongoose.Types.ObjectId.isValid(productId)) return res.status(400).send({ status: false, message: "Enter a valid productId." });
         
         let data = req.body;
-        if (!isValidBody(data)) return res.status(400).send({ status: false, message: "No data provided in request body to update." });
+        
+        let files = req.files;
+        if (!isValidBody(data) && !files) return res.status(400).send({ status: false, message: "No data provided in request body to update." });
+
+        if (files && files.length > 0) data.productImage = await uploadFile(files[0]);
 
         let { title, isFreeShipping, availableSizes } = data;
 
@@ -156,8 +160,6 @@ const updateProductById = async function (req, res) {
             if (wrongSizes.length > 0) return res.status(400).send({ status: false, message: `${wrongSizes} sizes not included in [${enumerated}].` })
         }
 
-        let files = req.files;
-        if (files && files.length > 0) data.productImage = await uploadFile(files[0]);
         
         let updatedProduct = await productModel.findOneAndUpdate(
             { isDeleted: false, _id: productId },
